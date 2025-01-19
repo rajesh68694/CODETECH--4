@@ -1,0 +1,82 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Activation
+from tensorflow.keras.optimizers import Adam
+import string
+
+# Function to load and preprocess the dataset
+def preprocesstext(text):
+    text = text.lower()  # Convert text to lowercase
+    text = text.translate(str.maketrans("", "", string.punctuation))  # Remove punctuation
+    return text
+
+# Function to prepare dataset for training
+def preparedataset(text, seqlength=100):
+    sequences = []
+    nextchars = []
+    for i in range(0, len(text) - seqlength, 1):
+        sequences.append(text[i:i + seqlength])
+        nextchars.append(text[i + seqlength])
+    return sequences, nextchars
+
+# Load your dataset (example: text related to your topic)
+# Here you can replace this with loading a custom dataset, for example:
+# with open('your_dataset.txt', 'r') as file:
+#     text = file.read()
+text = "Your custom text data goes here. This text should relate to the specific topic you want the model to learn."
+
+# Preprocess the dataset
+text = preprocesstext(text)
+
+# Prepare the dataset
+seqlength = 100
+sequences, nextchars = preparedataset(text, seqlength)
+
+# Create a mapping of characters to integers
+chars = sorted(set(text))
+chartoint = {char: i for i, char in enumerate(chars)}
+inttochar = {i: char for i, char in enumerate(chars)}
+
+# Convert text to integers
+X = np.zeros((len(sequences), seq_length, len(chars)), dtype=np.bool)
+y = np.zeros((len(sequences), len(chars)), dtype=np.bool)
+
+for i, sequence in enumerate(sequences):
+    for t, char in enumerate(sequence):
+        X[i, t, chartoint[char]] = 1
+    y[i, chartoint[nextchars[i]]] = 1
+
+# Define the LSTM model
+model = Sequential()
+model.add(LSTM(128, inputshape=(X.shape[1], X.shape[2]), returnsequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(128))
+model.add(Dropout(0.2))
+model.add(Dense(len(chars)))
+model.add(Activation('softmax'))
+
+# Compile the model
+model.compile(loss='categoricalcrossentropy', optimizer=Adam(lr=0.001))
+
+# Train the model
+model.fit(X, y, epochs=50, batchsize=128)
+
+# Function to generate text based on the trained model
+def generatelstmtext(seedtext, numchars=500):
+    generatedtext = seedtext
+    for  in range(numchars):
+        X_pred = np.zeros((1, len(seedtext), len(chars)))
+        for t, char in enumerate(seedtext):
+            Xpred[0, t, chartoint[char]] = 1
+        pred = model.predict(Xpred, verbose=0)
+        nextcharindex = np.argmax(pred)
+        nextchar = inttochar[nextcharindex]
+        generatedtext += nextchar
+        seedtext = seed_text[1:] + nextchar
+    return generatedtext
+
+# Example Usage: Generate text based on a seed
+seedtext = "artificial intelligence"
+generatedtext = generatelstmtext(seedtext, numchars=300)
+print(generatedtext)
